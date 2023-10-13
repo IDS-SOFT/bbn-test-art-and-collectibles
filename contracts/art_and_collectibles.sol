@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.20;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
+contract ArtCollectibleContract {
+    address owner;
 
-contract ArtCollectibleContract is Ownable {
     string public itemName;
     string public itemDescription;
     uint256 public itemPrice;
@@ -13,7 +13,7 @@ contract ArtCollectibleContract is Ownable {
     event ItemListed(uint256 price);
     event ItemSold(address indexed buyer, uint256 price);
     event ItemUnlisted();
-    event CheckBalance(string text, uint amount);
+    event CheckBalance(uint amount);
 
     constructor(
         string memory _name,
@@ -24,10 +24,17 @@ contract ArtCollectibleContract is Ownable {
         itemDescription = _description;
         itemPrice = _price;
         i_am_owner = msg.sender;
+        owner = msg.sender;
+    }
+
+    modifier onlyOwner() {
+        require(msg.sender == owner, "Only owner can call this");
+        _;
     }
 
     function listForSale(uint256 price) external onlyOwner {
         require(!isListedForSale, "Item is already listed for sale");
+
         itemPrice = price;
         isListedForSale = true;
         emit ItemListed(price);
@@ -35,6 +42,7 @@ contract ArtCollectibleContract is Ownable {
 
     function unlistForSale() external onlyOwner {
         require(isListedForSale, "Item is not listed for sale");
+
         isListedForSale = false;
         emit ItemUnlisted();
     }
@@ -42,24 +50,17 @@ contract ArtCollectibleContract is Ownable {
     function purchaseItem() external payable {
         require(isListedForSale, "Item is not listed for sale");
         require(msg.value >= itemPrice, "Insufficient funds");
+
         address previousOwner = i_am_owner;
         i_am_owner = msg.sender;
         isListedForSale = false;
         payable(previousOwner).transfer(msg.value);
         emit ItemSold(msg.sender, msg.value);
     }
-
-    function withdrawFunds() external onlyOwner {
-        uint256 contractBalance = address(this).balance;
-        require(contractBalance > 0, "No funds to withdraw");
-        payable(i_am_owner).transfer(contractBalance);
-    }
     
     function getBalance(address user_account) external returns (uint){
-       string memory data = "User Balance is : ";
        uint user_bal = user_account.balance;
-       emit CheckBalance(data, user_bal );
+       emit CheckBalance(user_bal);
        return (user_bal);
-
     }
 }
